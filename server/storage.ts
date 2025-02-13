@@ -62,7 +62,10 @@ export class MemStorage implements IStorage {
       { name: "Revenue", value: 45290, category: "finance" },
       { name: "Growth", value: 23, category: "finance" },
       { name: "Conversion Rate", value: 68, category: "funnel" },
-      { name: "Session Attendance", value: 456, category: "engagement" }
+      { name: "Session Attendance", value: 456, category: "engagement" },
+      { name: "Intro Call Rate", value: 60, category: "funnel" },
+      { name: "Profile Completion", value: 80, category: "funnel" },
+      { name: "First Lesson", value: 40, category: "engagement" }
     ];
 
     // Sample sales (last 10 days)
