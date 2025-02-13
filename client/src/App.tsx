@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Analytics from "@/pages/analytics";
 import Engagement from "@/pages/engagement";
+import HealthTracking from "@/pages/health";
 import { Sidebar } from "@/components/layout/sidebar";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/analytics" component={Analytics} />
           <Route path="/engagement" component={Engagement} />
+          <Route path="/health" component={HealthTracking} />
           <Route component={NotFound} />
         </Switch>
       </main>
