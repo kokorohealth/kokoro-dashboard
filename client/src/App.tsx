@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import Analytics from "@/pages/analytics";
 import Engagement from "@/pages/engagement";
 import HealthTracking from "@/pages/health";
+import SubscriptionRetention from "@/pages/subscription";
 import { Sidebar } from "@/components/layout/sidebar";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
           <Route path="/analytics" component={Analytics} />
           <Route path="/engagement" component={Engagement} />
           <Route path="/health" component={HealthTracking} />
+          <Route path="/subscription" component={SubscriptionRetention} />
           <Route component={NotFound} />
         </Switch>
       </main>
