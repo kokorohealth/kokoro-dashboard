@@ -3,7 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, PhoneCall, UserCheck, BookOpen } from "lucide-react";
 import Chart from "react-apexcharts";
 import { cn } from "@/lib/utils";
+import { TimeFilter } from "@/components/ui/time-filter";
+import { calculateTrend, formatTrendValue } from "@/lib/trends";
 import type { Metric } from "@shared/schema";
+import { DateRange } from "react-day-picker";
+import React from 'react';
 
 interface KPIStat {
   title: string;
@@ -11,41 +15,68 @@ interface KPIStat {
   description: string;
   icon: React.ElementType;
   className: string;
+  trend?: string;
 }
 
 export default function Analytics() {
+  const [dateRange, setDateRange] = React.useState<DateRange>({
+    from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    to: new Date()
+  });
+  const [showComparison, setShowComparison] = React.useState(false);
+
   const { data: metrics, isLoading } = useQuery<Metric[]>({
-    queryKey: ["/api/metrics"],
+    queryKey: ["/api/metrics", dateRange],
   });
 
-  const getMetricByName = (name: string) => 
-    metrics?.find(m => m.name === name)?.value || 0;
+  const { data: previousMetrics, isLoading: previousLoading } = useQuery<Metric[]>({
+    queryKey: ["/api/metrics", {
+      from: new Date(dateRange.from!.getTime() - (dateRange.to!.getTime() - dateRange.from!.getTime())),
+      to: dateRange.from
+    }],
+    enabled: showComparison,
+  });
+
+  const getMetricByName = (name: string, data = metrics) => 
+    data?.find(m => m.name === name)?.value || 0;
 
   const kpiStats: KPIStat[] = [
     {
       title: "Total Sign-ups",
-      value: getMetricByName("Total Users").toLocaleString(),
+      value: formatTrendValue(
+        getMetricByName("Total Users"),
+        showComparison ? getMetricByName("Total Users", previousMetrics) : undefined
+      ),
       description: "All time registered users",
       icon: Users,
       className: "text-blue-500",
     },
     {
       title: "Intro Calls Booked",
-      value: `${getMetricByName("Intro Call Rate")}%`,
+      value: formatTrendValue(
+        getMetricByName("Intro Call Rate"),
+        showComparison ? getMetricByName("Intro Call Rate", previousMetrics) : undefined
+      ),
       description: "Of total sign-ups",
       icon: PhoneCall,
       className: "text-green-500",
     },
     {
       title: "Profile Completion",
-      value: `${getMetricByName("Profile Completion")}%`,
+      value: formatTrendValue(
+        getMetricByName("Profile Completion"),
+        showComparison ? getMetricByName("Profile Completion", previousMetrics) : undefined
+      ),
       description: "Users with complete profiles",
       icon: UserCheck,
       className: "text-purple-500",
     },
     {
       title: "First Lesson Started",
-      value: `${getMetricByName("First Lesson")}%`,
+      value: formatTrendValue(
+        getMetricByName("First Lesson"),
+        showComparison ? getMetricByName("First Lesson", previousMetrics) : undefined
+      ),
       description: "Users who started learning",
       icon: BookOpen,
       className: "text-orange-500",
@@ -84,12 +115,18 @@ export default function Analytics() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || (showComparison && previousLoading)) {
     return <div>Loading analytics...</div>;
   }
 
   return (
     <div className="p-8 space-y-8">
+      <TimeFilter
+        onRangeChange={(range) => range && setDateRange(range)}
+        onComparisonChange={setShowComparison}
+        className="mb-8"
+      />
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {kpiStats.map((stat) => (
           <Card key={stat.title}>

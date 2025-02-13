@@ -71,6 +71,13 @@ export const lessons = pgTable("lessons", {
   averageTimeSpent: integer("average_time_spent"), // in seconds
 });
 
+export const realTimeMetrics = pgTable("real_time_metrics", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  value: integer("value").notNull(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
 // Export insert schemas
 export const insertMetricSchema = createInsertSchema(metrics).omit({ id: true, timestamp: true });
 export const insertSaleSchema = createInsertSchema(sales).omit({ id: true });
@@ -80,6 +87,7 @@ export const insertHealthDataSchema = createInsertSchema(healthData).omit({ id: 
 export const insertLessonCompletionSchema = createInsertSchema(lessonCompletions).omit({ id: true });
 export const insertContentInteractionSchema = createInsertSchema(contentInteractions).omit({ id: true });
 export const insertLessonSchema = createInsertSchema(lessons).omit({ id: true });
+export const insertRealTimeMetricSchema = createInsertSchema(realTimeMetrics).omit({ id: true, timestamp: true });
 
 // Export types
 export type InsertMetric = z.infer<typeof insertMetricSchema>;
@@ -90,6 +98,7 @@ export type InsertHealthData = z.infer<typeof insertHealthDataSchema>;
 export type InsertLessonCompletion = z.infer<typeof insertLessonCompletionSchema>;
 export type InsertContentInteraction = z.infer<typeof insertContentInteractionSchema>;
 export type InsertLesson = z.infer<typeof insertLessonSchema>;
+export type InsertRealTimeMetric = z.infer<typeof insertRealTimeMetricSchema>;
 
 export type Metric = typeof metrics.$inferSelect;
 export type Sale = typeof sales.$inferSelect;
@@ -99,3 +108,4 @@ export type HealthData = typeof healthData.$inferSelect;
 export type LessonCompletion = typeof lessonCompletions.$inferSelect;
 export type ContentInteraction = typeof contentInteractions.$inferSelect;
 export type Lesson = typeof lessons.$inferSelect;
+export type RealTimeMetric = typeof realTimeMetrics.$inferSelect;
