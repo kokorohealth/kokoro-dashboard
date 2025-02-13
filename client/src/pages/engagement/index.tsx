@@ -3,6 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Video, FileText, PenTool } from "lucide-react";
 import Chart from "react-apexcharts";
 import { cn } from "@/lib/utils";
+import { TimeFilter } from "@/components/ui/time-filter";
+import { formatTrendValue } from "@/lib/trends";
+import { DateRange } from "react-day-picker";
+import React from "react";
 import type { LessonCompletion, ContentInteraction, Lesson } from "@shared/schema";
 
 interface KPIStat {
@@ -14,55 +18,84 @@ interface KPIStat {
 }
 
 export default function Engagement() {
+  const [dateRange, setDateRange] = React.useState<DateRange>({
+    from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    to: new Date()
+  });
+  const [showComparison, setShowComparison] = React.useState(false);
+
   const { data: completions, isLoading: completionsLoading } = useQuery<LessonCompletion[]>({
-    queryKey: ["/api/lesson-completions"],
+    queryKey: ["/api/lesson-completions", dateRange],
+  });
+
+  const { data: prevCompletions, isLoading: prevCompletionsLoading } = useQuery<LessonCompletion[]>({
+    queryKey: ["/api/lesson-completions", {
+      from: new Date(dateRange.from!.getTime() - (dateRange.to!.getTime() - dateRange.from!.getTime())),
+      to: dateRange.from
+    }],
+    enabled: showComparison,
   });
 
   const { data: interactions, isLoading: interactionsLoading } = useQuery<ContentInteraction[]>({
-    queryKey: ["/api/content-interactions"],
+    queryKey: ["/api/content-interactions", dateRange],
+  });
+
+  const { data: prevInteractions } = useQuery<ContentInteraction[]>({
+    queryKey: ["/api/content-interactions", {
+      from: new Date(dateRange.from!.getTime() - (dateRange.to!.getTime() - dateRange.from!.getTime())),
+      to: dateRange.from
+    }],
+    enabled: showComparison,
   });
 
   const { data: lessons, isLoading: lessonsLoading } = useQuery<Lesson[]>({
     queryKey: ["/api/lessons"],
   });
 
-  // Calculate week 1 completion stats
+  // Calculate week 1 completion stats for current period
   const week1Total = completions?.filter(c => c.weekNumber === 1).length || 0;
-  const totalUsers = [...new Set(completions?.map(c => c.userId) || [])].length;
+  const totalUsers = Array.from(new Set(completions?.map(c => c.userId))).length;
   const week1Percentage = totalUsers ? Math.round((week1Total / totalUsers) * 100) : 0;
 
+  // Calculate week 1 completion stats for previous period
+  const prevWeek1Total = prevCompletions?.filter(c => c.weekNumber === 1).length || 0;
+  const prevTotalUsers = Array.from(new Set(prevCompletions?.map(c => c.userId))).length;
+
   // Calculate content type engagement
-  const contentTypeCount = {
-    video: interactions?.filter(i => i.contentType === 'video').length || 0,
-    pdf: interactions?.filter(i => i.contentType === 'pdf').length || 0,
-    journal: interactions?.filter(i => i.contentType === 'journal').length || 0,
-  };
+  const getContentTypeCount = (data?: ContentInteraction[]) => ({
+    video: data?.filter(i => i.contentType === 'video').length || 0,
+    pdf: data?.filter(i => i.contentType === 'pdf').length || 0,
+    journal: data?.filter(i => i.contentType === 'journal').length || 0,
+  });
+
+  const contentTypeCount = getContentTypeCount(interactions);
+  const prevContentTypeCount = getContentTypeCount(prevInteractions);
 
   const kpiStats: KPIStat[] = [
     {
       title: "Week 1 Completion",
-      value: `${week1Percentage}%`,
+      value: formatTrendValue(week1Percentage, prevTotalUsers ? Math.round((prevWeek1Total / prevTotalUsers) * 100) : undefined),
       description: `${week1Total} users completed`,
       icon: BookOpen,
       className: "text-blue-500",
     },
     {
       title: "Video Views",
-      value: contentTypeCount.video.toString(),
+      value: formatTrendValue(contentTypeCount.video, prevContentTypeCount.video),
       description: "Total video interactions",
       icon: Video,
       className: "text-green-500",
     },
     {
       title: "PDF Downloads",
-      value: contentTypeCount.pdf.toString(),
+      value: formatTrendValue(contentTypeCount.pdf, prevContentTypeCount.pdf),
       description: "Total PDF interactions",
       icon: FileText,
       className: "text-purple-500",
     },
     {
       title: "Journal Entries",
-      value: contentTypeCount.journal.toString(),
+      value: formatTrendValue(contentTypeCount.journal, prevContentTypeCount.journal),
       description: "Total journal entries",
       icon: PenTool,
       className: "text-orange-500",
@@ -75,6 +108,11 @@ export default function Engagement() {
     return completions?.filter(c => c.weekNumber === weekNum).length || 0;
   });
 
+  const prevWeeklyCompletions = Array.from({ length: 12 }, (_, i) => {
+    const weekNum = i + 1;
+    return prevCompletions?.filter(c => c.weekNumber === weekNum).length || 0;
+  });
+
   const weeklyCompletionOptions = {
     chart: {
       type: 'bar' as const,
@@ -85,22 +123,14 @@ export default function Engagement() {
         borderRadius: 4,
       }
     },
-    colors: ['#2563EB'],
+    colors: ['#2563EB', showComparison ? '#94A3B8' : undefined].filter(Boolean) as string[],
     xaxis: {
       categories: Array.from({ length: 12 }, (_, i) => `Week ${i + 1}`),
     }
   };
 
-  // Content type engagement chart
-  const contentTypeOptions = {
-    chart: {
-      type: 'donut' as const,
-    },
-    labels: ['Videos', 'PDFs', 'Journals'],
-    colors: ['#2563EB', '#3B82F6', '#60A5FA'],
-  };
-
-  const isLoading = completionsLoading || interactionsLoading || lessonsLoading;
+  const isLoading = completionsLoading || interactionsLoading || lessonsLoading || 
+    (showComparison && prevCompletionsLoading);
 
   if (isLoading) {
     return <div>Loading engagement data...</div>;
@@ -108,6 +138,12 @@ export default function Engagement() {
 
   return (
     <div className="p-8 space-y-8">
+      <TimeFilter
+        onRangeChange={(range) => range && setDateRange(range)}
+        onComparisonChange={setShowComparison}
+        className="mb-8"
+      />
+
       {/* KPI Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {kpiStats.map((stat) => (
@@ -136,36 +172,23 @@ export default function Engagement() {
         <CardContent>
           <Chart
             options={weeklyCompletionOptions}
-            series={[{
-              name: "Completions",
-              data: weeklyCompletions
-            }]}
+            series={[
+              {
+                name: "Current Period",
+                data: weeklyCompletions
+              },
+              ...(showComparison ? [{
+                name: "Previous Period",
+                data: prevWeeklyCompletions
+              }] : [])
+            ]}
             type="bar"
             height={350}
           />
         </CardContent>
       </Card>
 
-      {/* Content Type Engagement */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Content Type Engagement</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Chart
-            options={contentTypeOptions}
-            series={[
-              contentTypeCount.video,
-              contentTypeCount.pdf,
-              contentTypeCount.journal
-            ]}
-            type="donut"
-            height={350}
-          />
-        </CardContent>
-      </Card>
-
-      {/* Interactive Lessons Table */}
+      {/* Lesson Performance */}
       <Card>
         <CardHeader>
           <CardTitle>Lesson Performance</CardTitle>
@@ -191,7 +214,9 @@ export default function Engagement() {
                     <td className="px-4 py-2 capitalize">{lesson.type}</td>
                     <td className="px-4 py-2">{lesson.totalCompletions}</td>
                     <td className="px-4 py-2">{lesson.averageRating}/5</td>
-                    <td className="px-4 py-2">{Math.round(lesson.averageTimeSpent / 60)} min</td>
+                    <td className="px-4 py-2">
+                      {lesson.averageTimeSpent ? `${Math.round(lesson.averageTimeSpent / 60)} min` : 'N/A'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

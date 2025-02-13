@@ -3,6 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Scale, Ruler, LineChart } from "lucide-react";
 import Chart from "react-apexcharts";
 import { cn } from "@/lib/utils";
+import { TimeFilter } from "@/components/ui/time-filter";
+import { formatTrendValue } from "@/lib/trends";
+import { DateRange } from "react-day-picker";
+import React from "react";
 import type { HealthData, User } from "@shared/schema";
 
 interface KPIStat {
@@ -14,8 +18,22 @@ interface KPIStat {
 }
 
 export default function HealthTracking() {
+  const [dateRange, setDateRange] = React.useState<DateRange>({
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    to: new Date()
+  });
+  const [showComparison, setShowComparison] = React.useState(false);
+
   const { data: healthData, isLoading: healthDataLoading } = useQuery<HealthData[]>({
-    queryKey: ["/api/health-data"],
+    queryKey: ["/api/health-data", dateRange],
+  });
+
+  const { data: prevHealthData, isLoading: prevHealthDataLoading } = useQuery<HealthData[]>({
+    queryKey: ["/api/health-data", {
+      from: new Date(dateRange.from!.getTime() - (dateRange.to!.getTime() - dateRange.from!.getTime())),
+      to: dateRange.from
+    }],
+    enabled: showComparison,
   });
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
@@ -25,32 +43,34 @@ export default function HealthTracking() {
   // Calculate health update frequency
   const activeUsers = users?.filter(u => u.lastActive) || [];
   const usersWithUpdates = new Set(healthData?.map(d => d.userId) || []);
+  const prevUsersWithUpdates = new Set(prevHealthData?.map(d => d.userId) || []);
+
   const updatePercentage = activeUsers.length ? 
     Math.round((usersWithUpdates.size / activeUsers.length) * 100) : 0;
+  const prevUpdatePercentage = activeUsers.length && showComparison ? 
+    Math.round((prevUsersWithUpdates.size / activeUsers.length) * 100) : undefined;
 
-  // Process weight data
-  const weightData = healthData
-    ?.filter(d => d.weight)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map(d => ({
-      x: new Date(d.date).getTime(),
-      y: d.weight ? Math.round(d.weight / 1000) : null // Convert g to kg
-    })) || [];
+  // Calculate average metrics
+  const getAverageMetric = (data: HealthData[] | undefined, field: keyof HealthData) => {
+    const values = data?.map(d => d[field]).filter(Boolean) as number[];
+    return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+  };
+
+  const avgWeight = getAverageMetric(healthData, 'weight') / 1000; // Convert g to kg
+  const prevAvgWeight = getAverageMetric(prevHealthData, 'weight') / 1000;
 
   const kpiStats: KPIStat[] = [
     {
       title: "Health Updates",
-      value: `${updatePercentage}%`,
+      value: formatTrendValue(updatePercentage, prevUpdatePercentage),
       description: "Users tracking health metrics",
       icon: Activity,
       className: "text-blue-500",
     },
     {
-      title: "Avg Weight Change",
-      value: weightData.length > 1 ? 
-        `${Math.round((weightData[0].y! - weightData[weightData.length-1].y!) * 10) / 10}kg` : 
-        "N/A",
-      description: "Average weight loss",
+      title: "Avg Weight",
+      value: formatTrendValue(avgWeight, showComparison ? prevAvgWeight : undefined),
+      description: "Average weight (kg)",
       icon: Scale,
       className: "text-green-500",
     },
@@ -70,7 +90,7 @@ export default function HealthTracking() {
     },
   ];
 
-  const weightChartOptions = {
+  const chartOptions = {
     chart: {
       type: 'line' as const,
       toolbar: { show: false },
@@ -81,7 +101,7 @@ export default function HealthTracking() {
       labels: {
         datetimeFormatter: {
           year: 'yyyy',
-          month: 'MMM \'yy',
+          month: "MMM 'yy",
           day: 'dd MMM',
         }
       }
@@ -90,24 +110,21 @@ export default function HealthTracking() {
       curve: 'smooth' as const,
       width: 2
     },
-    colors: ['#2563EB'],
+    colors: ['#2563EB', showComparison ? '#94A3B8' : undefined].filter(Boolean) as string[],
   };
 
-  const biometricChartOptions = {
-    ...weightChartOptions,
-    chart: {
-      type: 'line' as const,
-      toolbar: { show: false },
-      zoom: { enabled: false },
-    },
-  };
-
-  if (healthDataLoading || usersLoading) {
+  if (healthDataLoading || usersLoading || (showComparison && prevHealthDataLoading)) {
     return <div>Loading health data...</div>;
   }
 
   return (
     <div className="p-8 space-y-8">
+      <TimeFilter
+        onRangeChange={(range) => range && setDateRange(range)}
+        onComparisonChange={setShowComparison}
+        className="mb-8"
+      />
+
       {/* KPI Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {kpiStats.map((stat) => (
@@ -135,8 +152,27 @@ export default function HealthTracking() {
         </CardHeader>
         <CardContent>
           <Chart
-            options={weightChartOptions}
-            series={[{ name: "Average Weight", data: weightData }]}
+            options={chartOptions}
+            series={[
+              {
+                name: "Current Period",
+                data: healthData
+                  ?.filter(d => d.weight)
+                  .map(d => ({
+                    x: new Date(d.date).getTime(),
+                    y: d.weight ? Math.round(d.weight / 1000) : null // Convert g to kg
+                  })) || []
+              },
+              ...(showComparison ? [{
+                name: "Previous Period",
+                data: prevHealthData
+                  ?.filter(d => d.weight)
+                  .map(d => ({
+                    x: new Date(d.date).getTime(),
+                    y: d.weight ? Math.round(d.weight / 1000) : null
+                  })) || []
+              }] : [])
+            ]}
             height={350}
             type="line"
           />
@@ -151,16 +187,27 @@ export default function HealthTracking() {
           </CardHeader>
           <CardContent>
             <Chart
-              options={biometricChartOptions}
-              series={[{
-                name: "Waist Circumference",
-                data: healthData
-                  ?.filter(d => d.waistCircumference)
-                  .map(d => ({
-                    x: new Date(d.date).getTime(),
-                    y: d.waistCircumference ? d.waistCircumference / 10 : null // mm to cm
-                  })) || []
-              }]}
+              options={chartOptions}
+              series={[
+                {
+                  name: "Current Period",
+                  data: healthData
+                    ?.filter(d => d.waistCircumference)
+                    .map(d => ({
+                      x: new Date(d.date).getTime(),
+                      y: d.waistCircumference ? d.waistCircumference / 10 : null // mm to cm
+                    })) || []
+                },
+                ...(showComparison ? [{
+                  name: "Previous Period",
+                  data: prevHealthData
+                    ?.filter(d => d.waistCircumference)
+                    .map(d => ({
+                      x: new Date(d.date).getTime(),
+                      y: d.waistCircumference ? d.waistCircumference / 10 : null
+                    })) || []
+                }] : [])
+              ]}
               height={350}
               type="line"
             />
@@ -173,16 +220,27 @@ export default function HealthTracking() {
           </CardHeader>
           <CardContent>
             <Chart
-              options={biometricChartOptions}
-              series={[{
-                name: "Blood Glucose",
-                data: healthData
-                  ?.filter(d => d.bloodGlucose)
-                  .map(d => ({
-                    x: new Date(d.date).getTime(),
-                    y: d.bloodGlucose
-                  })) || []
-              }]}
+              options={chartOptions}
+              series={[
+                {
+                  name: "Current Period",
+                  data: healthData
+                    ?.filter(d => d.bloodGlucose)
+                    .map(d => ({
+                      x: new Date(d.date).getTime(),
+                      y: d.bloodGlucose
+                    })) || []
+                },
+                ...(showComparison ? [{
+                  name: "Previous Period",
+                  data: prevHealthData
+                    ?.filter(d => d.bloodGlucose)
+                    .map(d => ({
+                      x: new Date(d.date).getTime(),
+                      y: d.bloodGlucose
+                    })) || []
+                }] : [])
+              ]}
               height={350}
               type="line"
             />
