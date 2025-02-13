@@ -17,6 +17,7 @@ const items: SidebarItem[] = [
   { icon: CreditCard, label: "Subscription", href: "/subscription" },
   { icon: Users, label: "Users", href: "/users" },
   { icon: Settings, label: "Settings", href: "/settings" },
+  { icon: Users, label: "Cohort", href: "/cohort" },
 ];
 
 export function Sidebar() {

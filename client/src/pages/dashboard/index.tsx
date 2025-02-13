@@ -32,6 +32,8 @@ export default function Dashboard() {
     return <div>Error loading dashboard data</div>;
   }
 
+  console.log("metrics", metrics);
+  console.log("sales", sales);
   return (
     <div className="p-8 space-y-8">
       <Stats metrics={metrics} />

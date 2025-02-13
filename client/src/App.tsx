@@ -8,6 +8,7 @@ import Analytics from "@/pages/analytics";
 import Engagement from "@/pages/engagement";
 import HealthTracking from "@/pages/health";
 import SubscriptionRetention from "@/pages/subscription";
+import CohortAnalysis from "@/pages/cohort";
 import LiveSessions from "@/pages/sessions";
 import { Sidebar } from "@/components/layout/sidebar";
 
@@ -23,6 +24,7 @@ function Router() {
           <Route path="/sessions" component={LiveSessions} />
           <Route path="/health" component={HealthTracking} />
           <Route path="/subscription" component={SubscriptionRetention} />
+          <Route path="/cohort" component={CohortAnalysis} />
           <Route component={NotFound} />
         </Switch>
       </main>

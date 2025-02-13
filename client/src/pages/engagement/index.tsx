@@ -18,6 +18,7 @@ interface KPIStat {
 }
 
 export default function Engagement() {
+  const [selectedWeek, setSelectedWeek] = React.useState<number | null>(null);
   const [dateRange, setDateRange] = React.useState<DateRange>({
     from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     to: new Date()
@@ -164,61 +165,156 @@ export default function Engagement() {
         ))}
       </div>
 
-      {/* Weekly Completions Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Week-by-Week Completion Rates</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Chart
-            options={weeklyCompletionOptions}
-            series={[
-              {
-                name: "Current Period",
-                data: weeklyCompletions
-              },
-              ...(showComparison ? [{
-                name: "Previous Period",
-                data: prevWeeklyCompletions
-              }] : [])
-            ]}
-            type="bar"
-            height={350}
-          />
-        </CardContent>
-      </Card>
+      {/* Completion Progress */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Weekly Completions Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Week-by-Week Completion Rates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Chart
+              options={weeklyCompletionOptions}
+              series={[
+                {
+                  name: "Current Period",
+                  data: weeklyCompletions
+                },
+                ...(showComparison ? [{
+                  name: "Previous Period",
+                  data: prevWeeklyCompletions
+                }] : [])
+              ]}
+              type="bar"
+              height={350}
+            />
+          </CardContent>
+        </Card>
 
-      {/* Lesson Performance */}
+        {/* 12-Week Completion Progress */}
+        <Card>
+          <CardHeader>
+            <CardTitle>12-Week Program Completion</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {Array.from({ length: 12 }, (_, weekIndex) => {
+              const week = weekIndex + 1;
+              const weekCompletions = completions?.filter(c => c.weekNumber === week).length || 0;
+              const completionRate = totalUsers ? Math.round((weekCompletions / totalUsers) * 100) : 0;
+
+              return (
+                <div key={week} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Week {week}</span>
+                    <span>{completionRate}%</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all" 
+                      style={{ width: `${completionRate}%` }} 
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Lesson Metrics */}
       <Card>
-        <CardHeader>
-          <CardTitle>Lesson Performance</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Lesson Metrics</CardTitle>
+          <select 
+            className="px-3 py-2 border rounded-md bg-background text-sm"
+            onChange={(e) => {
+              const week = parseInt(e.target.value);
+              setSelectedWeek(week || null);
+            }}
+          >
+            <option value="">All Weeks</option>
+            {Array.from({ length: 12 }, (_, i) => (
+              <option key={i + 1} value={i + 1}>Week {i + 1}</option>
+            ))}
+          </select>
         </CardHeader>
         <CardContent>
           <div className="relative overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead>
                 <tr className="bg-muted">
-                  <th className="px-4 py-2">Lesson</th>
                   <th className="px-4 py-2">Week</th>
-                  <th className="px-4 py-2">Type</th>
-                  <th className="px-4 py-2">Completions</th>
-                  <th className="px-4 py-2">Avg. Rating</th>
-                  <th className="px-4 py-2">Avg. Time</th>
+                  <th className="px-4 py-2">Lesson Name</th>
+                  <th className="px-4 py-2 min-w-[200px]">Completion Rate</th>
+                  <th className="px-4 py-2">Avg Time Spent (min)</th>
+                  <th className="px-4 py-2">Engagement Type</th>
+                  <th className="px-4 py-2 min-w-[200px]">Engaged Users</th>
+                  <th className="px-4 py-2">Total Users</th>
                 </tr>
               </thead>
               <tbody>
-                {lessons?.map((lesson) => (
-                  <tr key={lesson.id} className="border-b">
-                    <td className="px-4 py-2">{lesson.title}</td>
-                    <td className="px-4 py-2">{lesson.weekNumber}</td>
-                    <td className="px-4 py-2 capitalize">{lesson.type}</td>
-                    <td className="px-4 py-2">{lesson.totalCompletions}</td>
-                    <td className="px-4 py-2">{lesson.averageRating}/5</td>
-                    <td className="px-4 py-2">
-                      {lesson.averageTimeSpent ? `${Math.round(lesson.averageTimeSpent / 60)} min` : 'N/A'}
-                    </td>
-                  </tr>
-                ))}
+                {lessons?.filter(lesson => !selectedWeek || lesson.weekNumber === selectedWeek).map((lesson) => {
+                  const lessonCompletions = completions?.filter(c => 
+                    c.weekNumber === lesson.weekNumber
+                  ) || [];
+                  const lessonInteractions = interactions?.filter(i => 
+                    i.lessonId === lesson.id
+                  ) || [];
+                  const engagedUsers = new Set(lessonInteractions.map(i => i.userId)).size;
+                  const completionRate = totalUsers ? Math.round((lessonCompletions.length / totalUsers) * 100) : 0;
+                  const engagementRate = totalUsers ? Math.round((engagedUsers / totalUsers) * 100) : 0;
+
+                  return (
+                    <tr key={lesson.id} className="border-b">
+                      <td className="px-4 py-2">{lesson.weekNumber}</td>
+                      <td className="px-4 py-2">{lesson.title}</td>
+                      <td className="px-4 py-2">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span>Completion</span>
+                            <span>{completionRate}%</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary transition-all" 
+                              style={{ width: `${completionRate}%` }} 
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">
+                        {lesson.averageTimeSpent ? Math.round(lesson.averageTimeSpent / 60) : 'N/A'}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className={cn(
+                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                          {
+                            'bg-blue-100 text-blue-800': lesson.type === 'video',
+                            'bg-purple-100 text-purple-800': lesson.type === 'pdf',
+                            'bg-green-100 text-green-800': lesson.type === 'journal',
+                          }
+                        )}>
+                          {lesson.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span>Engaged</span>
+                            <span>{engagementRate}%</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary transition-all" 
+                              style={{ width: `${engagementRate}%` }} 
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">{totalUsers}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
