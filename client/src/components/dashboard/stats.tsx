@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, DollarSign, TrendingUp, Activity } from "lucide-react";
+import { Users, DollarSign, TrendingUp, UserCheck } from "lucide-react";
 import type { Metric } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -13,27 +13,31 @@ export function Stats({ metrics }: StatsProps) {
 
   const stats = [
     {
-      title: "Total Users",
-      value: getMetricByName("Total Users").toLocaleString(),
+      title: "Total Active Users",
+      value: getMetricByName("Active Users").toLocaleString(),
       icon: Users,
+      description: "Current active users",
       className: "text-blue-500",
     },
     {
-      title: "Active Users",
-      value: getMetricByName("Active Users").toLocaleString(),
-      icon: Activity,
+      title: "Total Subscribers",
+      value: getMetricByName("Total Users").toLocaleString(),
+      icon: UserCheck,
+      description: "Registered users",
       className: "text-green-500",
     },
     {
-      title: "Revenue",
-      value: `$${getMetricByName("Revenue").toLocaleString()}`,
-      icon: DollarSign,
+      title: "Conversion Rate",
+      value: `${getMetricByName("Conversion Rate")}%`,
+      icon: TrendingUp,
+      description: "Free to paid conversion",
       className: "text-purple-500",
     },
     {
-      title: "Growth",
-      value: `${getMetricByName("Growth")}%`,
-      icon: TrendingUp,
+      title: "Total Revenue",
+      value: `$${getMetricByName("Revenue").toLocaleString()}`,
+      icon: DollarSign,
+      description: "Monthly recurring revenue",
       className: "text-orange-500",
     },
   ];
@@ -50,6 +54,9 @@ export function Stats({ metrics }: StatsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stat.value}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stat.description}
+            </p>
           </CardContent>
         </Card>
       ))}
