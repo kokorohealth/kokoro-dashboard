@@ -1,4 +1,4 @@
-import { LucideIcon, Home, BarChart2, Users, Settings, BookOpen, Activity, CreditCard } from "lucide-react";
+import { LucideIcon, Home, BarChart2, Users, Settings, BookOpen, Activity, CreditCard, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 
@@ -12,6 +12,7 @@ const items: SidebarItem[] = [
   { icon: Home, label: "Dashboard", href: "/" },
   { icon: BarChart2, label: "Analytics", href: "/analytics" },
   { icon: BookOpen, label: "Engagement", href: "/engagement" },
+  { icon: Video, label: "Live Sessions", href: "/sessions" },
   { icon: Activity, label: "Health", href: "/health" },
   { icon: CreditCard, label: "Subscription", href: "/subscription" },
   { icon: Users, label: "Users", href: "/users" },
