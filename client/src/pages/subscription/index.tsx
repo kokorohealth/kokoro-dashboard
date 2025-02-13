@@ -46,6 +46,13 @@ export default function SubscriptionRetention() {
       className: "text-purple-500",
     },
     {
+      title: "Dietitian Plans",
+      value: "50",
+      description: "One-to-one dietitian plans",
+      icon: UserCheck,
+      className: "text-emerald-500",
+    },
+    {
       title: "Churn Rate",
       value: "5.2%",
       description: "Monthly churn rate",
@@ -84,8 +91,8 @@ export default function SubscriptionRetention() {
     chart: {
       type: 'donut' as const,
     },
-    labels: ['Monthly Plan', 'Yearly Plan', 'Free Trial'],
-    colors: ['#3B82F6', '#8B5CF6', '#64748B'],
+    labels: ['Monthly Plan', 'Yearly Plan', 'Dietitian Plan', 'Free Trial'],
+    colors: ['#3B82F6', '#8B5CF6', '#10B981', '#64748B'],
     legend: {
       position: 'bottom' as const
     }
@@ -173,7 +180,7 @@ export default function SubscriptionRetention() {
           <CardContent>
             <Chart
               options={subscriptionChartOptions}
-              series={[300, 100, 600]}  // Monthly, Yearly, Free Trial
+              series={[300, 100, 50, 600]}  // Monthly, Yearly, Dietitian, Free Trial
               type="donut"
               height={350}
             />
@@ -198,6 +205,59 @@ export default function SubscriptionRetention() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Introduction Call Conversion */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Introduction Call Conversions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Chart
+            options={{
+              chart: {
+                type: 'bar' as const,
+                toolbar: { show: false }
+              },
+              plotOptions: {
+                bar: {
+                  borderRadius: 4,
+                  horizontal: false,
+                  columnWidth: '60%',
+                }
+              },
+              colors: ['#3B82F6', '#8B5CF6', '#10B981'],
+              xaxis: {
+                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+              },
+              legend: {
+                position: 'top' as const
+              },
+              dataLabels: {
+                enabled: true,
+                formatter: function (val: number) {
+                  return val + '%';
+                }
+              }
+            }}
+            series={[
+              {
+                name: 'Monthly Plan',
+                data: [45, 52, 38, 54, 48, 58]  // Sample conversion rates
+              },
+              {
+                name: 'Yearly Plan',
+                data: [25, 28, 32, 34, 36, 42]
+              },
+              {
+                name: 'Dietitian Plan',
+                data: [15, 18, 22, 25, 28, 32]
+              }
+            ]}
+            type="bar"
+            height={350}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
