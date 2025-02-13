@@ -1,4 +1,4 @@
-import { LucideIcon, Home, BarChart2, Users, Settings } from "lucide-react";
+import { LucideIcon, Home, BarChart2, Users, Settings, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 
@@ -11,6 +11,7 @@ interface SidebarItem {
 const items: SidebarItem[] = [
   { icon: Home, label: "Dashboard", href: "/" },
   { icon: BarChart2, label: "Analytics", href: "/analytics" },
+  { icon: BookOpen, label: "Engagement", href: "/engagement" },
   { icon: Users, label: "Users", href: "/users" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ];
@@ -31,8 +32,8 @@ export function Sidebar() {
                 <a
                   className={cn(
                     "flex items-center rounded-lg px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent",
-                    location === item.href 
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                    location === item.href
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground"
                   )}
                 >

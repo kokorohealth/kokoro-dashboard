@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Analytics from "@/pages/analytics";
+import Engagement from "@/pages/engagement";
 import { Sidebar } from "@/components/layout/sidebar";
 
 function Router() {
@@ -15,6 +16,7 @@ function Router() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/analytics" component={Analytics} />
+          <Route path="/engagement" component={Engagement} />
           <Route component={NotFound} />
         </Switch>
       </main>

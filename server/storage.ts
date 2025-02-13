@@ -1,28 +1,42 @@
 import { 
   type Metric, type Sale, type User, type Session, type HealthData,
-  type InsertMetric, type InsertSale, type InsertUser, type InsertSession, type InsertHealthData
+  type InsertMetric, type InsertSale, type InsertUser, type InsertSession, type InsertHealthData,
+  type LessonCompletion, type ContentInteraction, type Lesson,
+  type InsertLessonCompletion, type InsertContentInteraction, type InsertLesson
 } from "@shared/schema";
 
 export interface IStorage {
   // Metrics
   getMetrics(): Promise<Metric[]>;
   createMetric(metric: InsertMetric): Promise<Metric>;
-
+  
   // Sales
   getSales(): Promise<Sale[]>;
   createSale(sale: InsertSale): Promise<Sale>;
-
+  
   // Users
   getUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
-
+  
   // Sessions
   getSessions(): Promise<Session[]>;
   createSession(session: InsertSession): Promise<Session>;
-
+  
   // Health Data
   getHealthData(): Promise<HealthData[]>;
   createHealthData(data: InsertHealthData): Promise<HealthData>;
+
+  // Lesson Completions
+  getLessonCompletions(): Promise<LessonCompletion[]>;
+  createLessonCompletion(completion: InsertLessonCompletion): Promise<LessonCompletion>;
+
+  // Content Interactions
+  getContentInteractions(): Promise<ContentInteraction[]>;
+  createContentInteraction(interaction: InsertContentInteraction): Promise<ContentInteraction>;
+
+  // Lessons
+  getLessons(): Promise<Lesson[]>;
+  createLesson(lesson: InsertLesson): Promise<Lesson>;
 }
 
 export class MemStorage implements IStorage {
@@ -31,12 +45,18 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private sessions: Map<number, Session>;
   private healthData: Map<number, HealthData>;
+  private lessonCompletions: Map<number, LessonCompletion>;
+  private contentInteractions: Map<number, ContentInteraction>;
+  private lessons: Map<number, Lesson>;
 
   private metricId: number;
   private saleId: number;
   private userId: number;
   private sessionId: number;
   private healthDataId: number;
+  private lessonCompletionId: number;
+  private contentInteractionId: number;
+  private lessonId: number;
 
   constructor() {
     this.metrics = new Map();
@@ -44,12 +64,18 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.sessions = new Map();
     this.healthData = new Map();
+    this.lessonCompletions = new Map();
+    this.contentInteractions = new Map();
+    this.lessons = new Map();
 
     this.metricId = 1;
     this.saleId = 1;
     this.userId = 1;
     this.sessionId = 1;
     this.healthDataId = 1;
+    this.lessonCompletionId = 1;
+    this.contentInteractionId = 1;
+    this.lessonId = 1;
 
     this.initializeSampleData();
   }
@@ -99,12 +125,44 @@ export class MemStorage implements IStorage {
       date: new Date(2024, 0, i + 1)
     }));
 
+    // Sample lessons
+    const sampleLessons: InsertLesson[] = Array.from({ length: 12 }, (_, i) => ({
+      title: `Week ${i + 1} Lesson`,
+      weekNumber: i + 1,
+      type: ['video', 'pdf', 'journal'][i % 3],
+      averageRating: Math.floor(Math.random() * 2) + 4, // 4-5 rating
+      totalCompletions: Math.floor(Math.random() * 1000) + 500,
+      averageTimeSpent: Math.floor(Math.random() * 900) + 300, // 5-20 minutes
+    }));
+
+    // Sample lesson completions (100 users completing different weeks)
+    const sampleCompletions: InsertLessonCompletion[] = Array.from({ length: 100 }, (_, i) => ({
+      userId: (i % 20) + 1,
+      weekNumber: Math.floor(i / 20) + 1,
+      completed: true,
+      completedAt: new Date(2024, 0, Math.floor(i / 20) + 1),
+    }));
+
+    // Sample content interactions
+    const sampleInteractions: InsertContentInteraction[] = Array.from({ length: 200 }, (_, i) => ({
+      userId: (i % 20) + 1,
+      contentType: ['video', 'pdf', 'journal'][i % 3],
+      lessonId: (i % 12) + 1,
+      weekNumber: Math.floor(i / 20) + 1,
+      interactionTime: Math.floor(Math.random() * 900) + 300, // 5-20 minutes
+      timestamp: new Date(2024, 0, Math.floor(i / 20) + 1),
+    }));
+
+
     // Initialize all sample data
     sampleMetrics.forEach(metric => this.createMetric(metric));
     sampleSales.forEach(sale => this.createSale(sale));
     sampleUsers.forEach(user => this.createUser(user));
     sampleSessions.forEach(session => this.createSession(session));
     sampleHealthData.forEach(data => this.createHealthData(data));
+    sampleLessons.forEach(lesson => this.createLesson(lesson));
+    sampleCompletions.forEach(completion => this.createLessonCompletion(completion));
+    sampleInteractions.forEach(interaction => this.createContentInteraction(interaction));
   }
 
   // Metrics
@@ -174,6 +232,42 @@ export class MemStorage implements IStorage {
     const healthData: HealthData = { ...insertHealthData, id };
     this.healthData.set(id, healthData);
     return healthData;
+  }
+
+  // Lesson Completions
+  async getLessonCompletions(): Promise<LessonCompletion[]> {
+    return Array.from(this.lessonCompletions.values());
+  }
+
+  async createLessonCompletion(insertCompletion: InsertLessonCompletion): Promise<LessonCompletion> {
+    const id = this.lessonCompletionId++;
+    const completion: LessonCompletion = { ...insertCompletion, id };
+    this.lessonCompletions.set(id, completion);
+    return completion;
+  }
+
+  // Content Interactions
+  async getContentInteractions(): Promise<ContentInteraction[]> {
+    return Array.from(this.contentInteractions.values());
+  }
+
+  async createContentInteraction(insertInteraction: InsertContentInteraction): Promise<ContentInteraction> {
+    const id = this.contentInteractionId++;
+    const interaction: ContentInteraction = { ...insertInteraction, id };
+    this.contentInteractions.set(id, interaction);
+    return interaction;
+  }
+
+  // Lessons
+  async getLessons(): Promise<Lesson[]> {
+    return Array.from(this.lessons.values());
+  }
+
+  async createLesson(insertLesson: InsertLesson): Promise<Lesson> {
+    const id = this.lessonId++;
+    const lesson: Lesson = { ...insertLesson, id };
+    this.lessons.set(id, lesson);
+    return lesson;
   }
 }
 

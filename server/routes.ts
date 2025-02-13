@@ -33,6 +33,24 @@ export function registerRoutes(app: Express): Server {
     res.json(healthData);
   });
 
+  // Lesson completions endpoints
+  app.get("/api/lesson-completions", async (_req, res) => {
+    const completions = await storage.getLessonCompletions();
+    res.json(completions);
+  });
+
+  // Content interactions endpoints
+  app.get("/api/content-interactions", async (_req, res) => {
+    const interactions = await storage.getContentInteractions();
+    res.json(interactions);
+  });
+
+  // Lessons endpoints
+  app.get("/api/lessons", async (_req, res) => {
+    const lessons = await storage.getLessons();
+    res.json(lessons);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
